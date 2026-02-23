@@ -15,7 +15,7 @@ app.use(
 app.use(express.json({ limit: data }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // app.use("/uploads", express.static("public/uploads")); // local
-app.use("/uploads", express.static("/home/shiv/uploads")); // production
+app.use("/uploads", express.static(process.env.UPLOAD_DIR)); // production
 app.use(cookieParser());
 
 import userRouter from "./routes/user.routes.js";

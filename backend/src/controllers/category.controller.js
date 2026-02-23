@@ -7,6 +7,9 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { deleteOldImage } from "../utils/utils.js";
 
+
+const UPLOAD_DIR = process.env.UPLOAD_DIR || "/home/shiv/uploads";
+
 // Fix __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,11 +27,14 @@ const createCategory = asyncHandler(async (req, res) => {
     return ApiError.send(
       res,
       400,
-      "All fields (name, SKU, description) are required.",
+      "All fields (name, SKU, description) are required."
     );
   }
 
-  const existingCategory = await prisma.category.findUnique({ where: { sku } });
+  const existingCategory = await prisma.category.findUnique({
+    where: { sku },
+  });
+
   if (existingCategory) {
     return ApiError.send(res, 409, "SKU already exists.");
   }
@@ -92,7 +98,9 @@ const updateCategory = asyncHandler(async (req, res) => {
     return ApiError.send(res, 403, "Only admins can update a category.");
   }
 
-  const existingCategory = await prisma.category.findUnique({ where: { id } });
+  const existingCategory = await prisma.category.findUnique({
+    where: { id },
+  });
 
   if (!existingCategory) {
     return ApiError.send(res, 404, "Category not found.");
@@ -101,29 +109,21 @@ const updateCategory = asyncHandler(async (req, res) => {
   let newImageFilename = existingCategory.image;
 
   if (req.file) {
-    // Delete the old image if exists
     if (existingCategory.image) {
-      const oldImageFileName = existingCategory.image.replace("/uploads/", "");
-      // const oldImagePath = path.join(
-      //   __dirname,
-      //   "../../public/uploads",
-      //   oldImageFileName,
-      // ); // local
-      const oldImagePath = path.join("/home/shiv/uploads", oldImageFileName); // production
-      deleteOldImage(oldImagePath);
+      const fileName = existingCategory.image.replace("/uploads/", "");
+      const fullPath = path.join(UPLOAD_DIR, fileName);
+      deleteOldImage(fullPath);
     }
 
-    // Store new image path
     newImageFilename = `/uploads/${req.file.filename}`;
   }
 
-  // Update the category
   const updatedCategory = await prisma.category.update({
     where: { id },
     data: {
-      name: name?.trim() || existingCategory.name,
-      sku: sku?.trim() || existingCategory.sku,
-      description: description?.trim() || existingCategory.description,
+      name: name?.trim() ?? existingCategory.name,
+      sku: sku?.trim() ?? existingCategory.sku,
+      description: description?.trim() ?? existingCategory.description,
       image: newImageFilename,
     },
   });
@@ -131,9 +131,10 @@ const updateCategory = asyncHandler(async (req, res) => {
   return res.status(200).json(
     new ApiResponse(200, "Category updated successfully", {
       category: updatedCategory,
-    }),
+    })
   );
 });
+
 
 // Delete category
 const deleteCategory = asyncHandler(async (req, res) => {
@@ -152,18 +153,14 @@ const deleteCategory = asyncHandler(async (req, res) => {
     return ApiError.send(res, 404, "Category not found.");
   }
 
-  // Delete image file if it exists
+  // Delete category image
   if (existingCategory.image) {
-    const imageFileName = existingCategory.image.replace("/uploads/", "");
-    const imagePath = path.join(
-      __dirname,
-      "../../public/uploads",
-      imageFileName,
-    );
-    deleteOldImage(imagePath);
+    const fileName = existingCategory.image.replace("/uploads/", "");
+    const fullPath = path.join(UPLOAD_DIR, fileName);
+    deleteOldImage(fullPath);
   }
 
-  // Delete all products associated with the category
+  // Delete related products
   if (existingCategory.products.length > 0) {
     await prisma.product.deleteMany({
       where: { categoryid: id },
@@ -172,11 +169,9 @@ const deleteCategory = asyncHandler(async (req, res) => {
 
   await prisma.category.delete({ where: { id } });
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(200, "Category and its products deleted successfully"),
-    );
+  return res.status(200).json(
+    new ApiResponse(200, "Category and its products deleted successfully")
+  );
 });
 
 export {

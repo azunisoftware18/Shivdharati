@@ -4,7 +4,7 @@ import fs from "fs";
 
 // Ensure uploads folder exists
 // const uploadsDir = path.join(process.cwd(), "public", "uploads"); // local
-const uploadsDir = "/home/shiv/uploads"; // production
+const uploadsDir = process.env.UPLOAD_DIR || "/home/shiv/uploads";
 // if (!fs.existsSync(uploadsDir)) {
 //   fs.mkdirSync(uploadsDir, { recursive: true });
 //   console.log("Uploads folder created:", uploadsDir);

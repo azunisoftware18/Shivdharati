@@ -1,44 +1,33 @@
 import path from "path";
-import { fileURLToPath } from "url";
 import prisma from "../db/db.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { deleteOldImage } from "../utils/utils.js";
 
-// Fix __dirname in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const UPLOAD_DIR = process.env.UPLOAD_DIR || "/home/shiv/uploads";
 
 const createProduct = asyncHandler(async (req, res) => {
   const { name, description, categoryid, price, stock, status } = req.body;
   const { id: createdby, role } = req.user;
+
   const imagePaths =
     req.files?.map((file) => `/uploads/${file.filename}`) || [];
-
 
   if (role !== "Admin") {
     return ApiError.send(res, 403, "Only admins can create a product.");
   }
 
-  if (
-    !name ||
-    !description ||
-    !categoryid ||
-    !price ||
-    !stock ||
-    !status ||
-    !createdby
-  ) {
+  if (!name || !description || !categoryid || !price || !stock || !status) {
     return ApiError.send(res, 400, "All required fields must be provided.");
   }
 
   if (imagePaths.length === 0) {
-    return ApiError.send(res, 403, "Please upload at least one product image.");
+    return ApiError.send(res, 400, "Please upload at least one product image.");
   }
 
   const numericPrice = parseFloat(
-    typeof price === "string" ? price.replace(/[^0-9.]/g, "") : price,
+    typeof price === "string" ? price.replace(/[^0-9.]/g, "") : price
   );
   if (isNaN(numericPrice)) {
     return ApiError.send(res, 400, "Invalid price format.");
@@ -132,14 +121,18 @@ const updateProduct = asyncHandler(async (req, res) => {
     }
   }
 
+  /* ---------- IMAGE REPLACEMENT ---------- */
   if (req.files?.length > 0) {
+    // Delete old images
     for (const img of existingProduct.images) {
-      // const oldPath = path.join(__dirname, "../../public", img.url); // local
-      const oldPath = path.join("/home/shiv/uploads", img.url); // production
-      deleteOldImage(oldPath);
+      const fileName = img.url.replace("/uploads/", "");
+      const fullPath = path.join(UPLOAD_DIR, fileName);
+      deleteOldImage(fullPath);
     }
 
-    await prisma.productImage.deleteMany({ where: { productId: id } });
+    await prisma.productImage.deleteMany({
+      where: { productId: id },
+    });
 
     await prisma.product.update({
       where: { id },
@@ -155,12 +148,14 @@ const updateProduct = asyncHandler(async (req, res) => {
 
   const numericPrice =
     price !== undefined ? parseFloat(price) : existingProduct.price;
+
   if (price !== undefined && (isNaN(numericPrice) || numericPrice < 0)) {
     return ApiError.send(res, 400, "Invalid price format.");
   }
 
   const numericStock =
     stock !== undefined ? parseInt(stock, 10) : existingProduct.stock;
+
   if (stock !== undefined && (isNaN(numericStock) || numericStock < 0)) {
     return ApiError.send(res, 400, "Invalid stock value.");
   }
@@ -181,7 +176,7 @@ const updateProduct = asyncHandler(async (req, res) => {
   return res.status(200).json(
     new ApiResponse(200, "Product updated successfully.", {
       product: updatedProduct,
-    }),
+    })
   );
 });
 
@@ -202,9 +197,9 @@ const deleteProduct = asyncHandler(async (req, res) => {
   }
 
   for (const img of product.images) {
-    // const imagePath = path.join(__dirname, "../../public", img.url); // local
-    const imagePath = path.join("/home/shiv/uploads", img.url); // production
-    deleteOldImage(imagePath);
+    const fileName = img.url.replace("/uploads/", "");
+    const fullPath = path.join(UPLOAD_DIR, fileName);
+    deleteOldImage(fullPath);
   }
 
   await prisma.product.delete({ where: { id } });
