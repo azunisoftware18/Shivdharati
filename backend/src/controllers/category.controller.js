@@ -104,11 +104,12 @@ const updateCategory = asyncHandler(async (req, res) => {
     // Delete the old image if exists
     if (existingCategory.image) {
       const oldImageFileName = existingCategory.image.replace("/uploads/", "");
-      const oldImagePath = path.join(
-        __dirname,
-        "../../public/uploads",
-        oldImageFileName,
-      );
+      // const oldImagePath = path.join(
+      //   __dirname,
+      //   "../../public/uploads",
+      //   oldImageFileName,
+      // ); // local
+      const oldImagePath = path.join("/home/shiv/uploads", oldImageFileName); // production
       deleteOldImage(oldImagePath);
     }
 

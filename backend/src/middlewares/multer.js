@@ -3,11 +3,16 @@ import path from "path";
 import fs from "fs";
 
 // Ensure uploads folder exists
-const uploadsDir = path.join(process.cwd(), "public", "uploads");
+// const uploadsDir = path.join(process.cwd(), "public", "uploads"); // local
+const uploadsDir = "/home/shiv/uploads"; // production
+// if (!fs.existsSync(uploadsDir)) {
+//   fs.mkdirSync(uploadsDir, { recursive: true });
+//   console.log("Uploads folder created:", uploadsDir);
+// } local
+
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log("Uploads folder created:", uploadsDir);
-}
+} // production
 
 // Multer setup
 const storage = multer.diskStorage({

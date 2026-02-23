@@ -134,7 +134,8 @@ const updateProduct = asyncHandler(async (req, res) => {
 
   if (req.files?.length > 0) {
     for (const img of existingProduct.images) {
-      const oldPath = path.join(__dirname, "../../public", img.url);
+      // const oldPath = path.join(__dirname, "../../public", img.url); // local
+      const oldPath = path.join("/home/shiv/uploads", img.url); // production
       deleteOldImage(oldPath);
     }
 
@@ -201,7 +202,8 @@ const deleteProduct = asyncHandler(async (req, res) => {
   }
 
   for (const img of product.images) {
-    const imagePath = path.join(__dirname, "../../public", img.url);
+    // const imagePath = path.join(__dirname, "../../public", img.url); // local
+    const imagePath = path.join("/home/shiv/uploads", img.url); // production
     deleteOldImage(imagePath);
   }
 
